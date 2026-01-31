@@ -30,6 +30,14 @@
     #include <sys/time.h>    // Linux/Unix: gettimeofday()
 #endif
 
+
+// 现代 {fmt} 方式 - 直接传 chrono 时间点
+// #include <chrono>
+// using namespace std::chrono;
+
+// auto now = system_clock::now();
+// fmt::format("{:%Y-%m-%d %H:%M:%S}", now);
+
 namespace YLog
 {
     namespace util
