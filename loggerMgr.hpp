@@ -61,7 +61,7 @@ protected:
     std::vector<LogSink::ptr> _sinks;
 };
 
-class LoggerBuilder : public YLog::Builder {
+class LoggerBuilder : public Builder {
 public:
     virtual Logger::ptr build()
     {
