@@ -11,7 +11,57 @@
 
 namespace YLog {
 
-class LoggerBuilder : public Logger::Builder {
+class Builder {
+public:
+    using ptr = std::shared_ptr<Builder>;
+    Builder()
+        : _level(LogLevel::Value::DEBUG),
+            _logger_type(Logger::Type::LOGGER_SYNC) {}
+    void buildLoggerName(const std::string &name)
+    {
+        _logger_name = name;
+    }
+
+    void buildLoggerLevel(LogLevel::Value level)
+    {
+        _level = level;
+    }
+    
+    void buildLoggerType(Logger::Type type)
+    {
+        _logger_type = type;
+    }
+
+    void buildLoggerFormat(LoggerFormat::FormatType format)
+    {
+        if(format == LoggerFormat::FormatType::FORMAT_NORMAL)
+        {
+            _format = std::make_shared<NormalFormat>();
+        }
+        else if(format == LoggerFormat::FormatType::FORMAT_DETAIL)
+        {
+            _format = std::make_shared<DetailFormat>(_logger_name);
+        }
+    }
+
+    template <typename SinkType, typename... Args>
+    void buildSink(Args &&...args)
+    {
+        auto sink = SinkFactory::create<SinkType>(std::forward<Args>(args)...);
+        _sinks.push_back(sink);
+    }
+
+    virtual Logger::ptr build() = 0;
+
+protected:
+    LoggerFormat::ptr _format;
+    Logger::Type _logger_type;
+    std::string _logger_name;
+    LogLevel::Value _level;
+    std::vector<LogSink::ptr> _sinks;
+};
+
+class LoggerBuilder : public YLog::Builder {
 public:
     virtual Logger::ptr build()
     {
