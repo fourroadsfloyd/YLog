@@ -112,43 +112,10 @@ void log_fatal(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...ar
     }
 }
 
-// ==================== 按 Logger 名字的函数 ====================
-template <typename... Args>
-void log_debug(const std::string &logger_name, fmt::format_string<Args...> fmt, Args &&...args)
-{
-    auto logger = getLogger(logger_name);
-    log_debug(logger, fmt, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-void log_info(const std::string &logger_name, fmt::format_string<Args...> fmt, Args &&...args)
-{
-    auto logger = getLogger(logger_name);
-    log_info(logger, fmt, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-void log_warn(const std::string &logger_name, fmt::format_string<Args...> fmt, Args &&...args)
-{
-    auto logger = getLogger(logger_name);
-    log_warn(logger, fmt, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-void log_error(const std::string &logger_name, fmt::format_string<Args...> fmt, Args &&...args)
-{
-    auto logger = getLogger(logger_name);
-    log_error(logger, fmt, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-void log_fatal(const std::string &logger_name, fmt::format_string<Args...> fmt, Args &&...args)
-{
-    auto logger = getLogger(logger_name);
-    log_fatal(logger, fmt, std::forward<Args>(args)...);
-}
 
 }
+
+
 
 
 #endif 
