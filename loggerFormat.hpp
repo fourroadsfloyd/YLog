@@ -3,6 +3,8 @@
 
 #include "3rdparty/fmt/core.h"
 #include "3rdparty/fmt/format.h"
+#include "3rdparty/fmt/chrono.h"
+
 #include "level.hpp"
 #include <memory>
 #include <chrono>
@@ -45,6 +47,8 @@ public:
 class DetailFormat : public LoggerFormat {
 public:
     using ptr = std::shared_ptr<DetailFormat>;
+
+    DetailFormat(const std::string &name) : LoggerFormat(name) {}
 
     std::string formatLog(LogLevel::Value level, const std::string& msg) override
     {

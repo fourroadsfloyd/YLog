@@ -11,11 +11,39 @@
 
 namespace YLog {
 
+class LoggerBuilder : public Logger::Builder {
+public:
+    virtual Logger::ptr build()
+    {
+        if (_logger_name.empty())
+        {
+            std::cout << "⽇志器名称不能为空！！";
+            abort();
+        }
+        if (_sinks.empty())
+        {
+            std::cout << "当前⽇志器：" << _logger_name << " 未检测到落地⽅向，默认为标准输出!\n";
+            _sinks.push_back(std::make_shared<StdoutSink>());
+        }
+        Logger::ptr lp;
+
+        if (_logger_type == Logger::Type::LOGGER_ASYNC)
+        {
+            lp = std::make_shared<AsyncLogger>(_logger_name, _sinks, _level);
+        }
+        else
+        {
+            lp = std::make_shared<SyncLogger>(_logger_name, _sinks, _level);
+        }
+        return lp;
+    }
+};
+
 class LoggerMgr {       //管理所有的logger实例
 private:
     LoggerMgr()
     {
-        std::unique_ptr<GlobalLoggerBuilder> slb(new GlobalLoggerBuilder());
+        std::unique_ptr<LoggerBuilder> slb(new LoggerBuilder());
         slb->buildLoggerName("root");
         slb->buildLoggerType(Logger::Type::LOGGER_ASYNC);
         slb->buildLoggerLevel(LogLevel::Value::DEBUG);
@@ -81,70 +109,6 @@ private:
     std::mutex _mutex;
     Logger::ptr _root_logger;
     std::unordered_map<std::string, Logger::ptr> _loggers;
-};
-
-class LocalLoggerBuilder : public Logger::Builder {
-public:
-    virtual Logger::ptr build()
-    {
-        if (_logger_name.empty())
-        {
-            std::cout << "⽇志器名称不能为空！！";
-            abort();
-        }
-        if (_sinks.empty())
-        {
-            std::cout << "当前⽇志器：" << _logger_name << " 未检测到落地⽅向，默认为标准输出!\n";
-            _sinks.push_back(std::make_shared<StdoutSink>());
-        }
-        Logger::ptr lp;
-
-        if (_logger_type == Logger::Type::LOGGER_ASYNC)
-        {
-            lp = std::make_shared<AsyncLogger>(_logger_name, _sinks, _level);
-        }
-        else
-        {
-            lp = std::make_shared<SyncLogger>(_logger_name, _sinks, _level);
-        }
-        return lp;
-    }
-};
-
-class GlobalLoggerBuilder : public Logger::Builder {
-public:
-    virtual Logger::ptr build()
-    {
-        if (_logger_name.empty())
-        {
-            std::cout << "⽇志器名称不能为空！！";
-            abort();
-        }
-
-        assert(LoggerMgr::getInstance().hasLogger(_logger_name) == false);
-
-        if (_sinks.empty())
-        {
-            std::cout << "当前⽇志器：" << _logger_name;
-            std::cout << " 未检测到落地⽅向，默认设置为标准输出!\n";
-            _sinks.push_back(std::make_shared<StdoutSink>());
-        }
-
-        Logger::ptr lp;
-
-        if (_logger_type == Logger::Type::LOGGER_ASYNC)
-        {
-            lp = std::make_shared<AsyncLogger>(_logger_name, _sinks, _level);
-        }
-        else
-        {
-            lp = std::make_shared<SyncLogger>(_logger_name, _sinks, _level);
-        }
-
-        LoggerMgr::getInstance().addLogger(_logger_name, lp);
-
-        return lp;
-    }
 };
 
 }

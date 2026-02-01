@@ -8,8 +8,8 @@ using namespace YLog;
 
 int main()
 {
-    // 创建 GlobalLoggerBuilder（会自动注册到 LoggerMgr）
-    GlobalLoggerBuilder builder;
+    // 创建 LoggerBuilder（会自动注册到 LoggerMgr）
+    LoggerBuilder builder;
 
     // 配置 logger
     builder.buildLoggerName("root");
