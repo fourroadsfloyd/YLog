@@ -18,27 +18,17 @@ public:
     };
 
     // 将日志级别转换为字符串
-    static const char *toString(LogLevel::Value v)
+    static constexpr const char *toString(LogLevel::Value v)
     {
         switch (v)
         {
-#define TOSTRING(name) #name
-        // 根据日志级别返回对应的字符串
-        case LogLevel::Value::DEBUG:
-            return TOSTRING(DEBUG);
-        case LogLevel::Value::INFO:
-            return TOSTRING(INFO);
-        case LogLevel::Value::WARN:
-            return TOSTRING(WARN);
-        case LogLevel::Value::ERROR:
-            return TOSTRING(ERROR);
-        case LogLevel::Value::FATAL:
-            return TOSTRING(FATAL);
-        case LogLevel::Value::OFF:
-            return TOSTRING(OFF);
-#undef TOSTRING
-        default:
-            return "UNKNOWN";
+        case LogLevel::Value::DEBUG: return "DEBUG";
+        case LogLevel::Value::INFO:  return "INFO";
+        case LogLevel::Value::WARN:  return "WARN";
+        case LogLevel::Value::ERROR: return "ERROR";
+        case LogLevel::Value::FATAL: return "FATAL";
+        case LogLevel::Value::OFF:   return "OFF";
+        default:                      return "UNKNOWN";
         }
     }
 };

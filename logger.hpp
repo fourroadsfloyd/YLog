@@ -42,62 +42,62 @@ public:
     LogLevel::Value loggerLevel() { return _level; }
     
     template<typename... Args>
-    void debug(LogLevel::Value level, fmt::format_string<Args...> fmt, Args&&... args)
+    void debug(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::DEBUG) == false)
             return;
 
-        log(fmt, std::forward<Args>(args)...);
+        auto msg = _format->formatLog(LogLevel::Value::DEBUG, fmt::format(fmt, std::forward<Args>(args)...));
+
+        LogIt(std::move(msg));
     }
 
     template<typename... Args>
-    void info(LogLevel::Value level, fmt::format_string<Args...> fmt, Args&&... args)
+    void info(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::INFO) == false)
             return;
 
-        log(fmt, std::forward<Args>(args)...);
+        auto msg = _format->formatLog(LogLevel::Value::INFO, fmt::format(fmt, std::forward<Args>(args)...));
+
+        LogIt(std::move(msg));
     }
 
     template<typename... Args>
-    void warn(LogLevel::Value level, fmt::format_string<Args...> fmt, Args&&... args)
+    void warn(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::WARN) == false)
             return;
 
-        log(fmt, std::forward<Args>(args)...);
+        auto msg = _format->formatLog(LogLevel::Value::WARN, fmt::format(fmt, std::forward<Args>(args)...));
+
+        LogIt(std::move(msg));
     }
 
     template<typename... Args>
-    void fatal(LogLevel::Value level, fmt::format_string<Args...> fmt, Args&&... args)
+    void error(fmt::format_string<Args...> fmt, Args&&... args)
+    {
+        if (shouldLog(LogLevel::Value::ERROR) == false)
+            return;
+
+        auto msg = _format->formatLog(LogLevel::Value::ERROR, fmt::format(fmt, std::forward<Args>(args)...));
+
+        LogIt(std::move(msg));
+    }
+
+    template<typename... Args>
+    void fatal(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::FATAL) == false)
             return;
 
-        log(fmt, std::forward<Args>(args)...);
-    }
+        auto msg = _format->formatLog(LogLevel::Value::FATAL, fmt::format(fmt, std::forward<Args>(args)...));
 
-    template<typename... Args>
-    void error(LogLevel::Value level, fmt::format_string<Args...> fmt, Args&&... args)
-    {
-        if (shouldLog(LogLevel::Value::ERROR) == false)
-            return;
-        
-        _format->formatLog(level, fmt::format(fmt, std::forward<Args>(args)...));
-        
-        log(fmt, std::forward<Args>(args)...);
+        LogIt(std::move(msg));
     }
 
 protected:
     bool shouldLog(LogLevel::Value level) { return level >= _level; }
-
-    template <typename... Args>
-    void log(fmt::format_string<Args...> fmt, Args &&...args) 
-    {
-        // fmt 可以直接格式化多个参数
-        auto msg = fmt::format(fmt::format(fmt, std::forward<Args>(args)...));
-        LogIt(std::move(msg));
-    }
 
     virtual void LogIt(const std::string &msg) = 0;
 
@@ -119,15 +119,28 @@ public:
         {
             _logger_name = name;
         }
+
         void buildLoggerLevel(LogLevel::Value level)
         {
             _level = level;
         }
+        
         void buildLoggerType(Logger::Type type)
         {
             _logger_type = type;
         }
-        
+
+        void buildLoggerFormat(LoggerFormat::FormatType format)
+        {
+            if(format == LoggerFormat::FormatType::FORMAT_NORMAL)
+            {
+                _format = std::make_shared<NormalFormat>();
+            }
+            else if(format == LoggerFormat::FormatType::FORMAT_DETAIL)
+            {
+                _format = std::make_shared<DetailFormat>(_logger_name);
+            }
+        }
 
         template <typename SinkType, typename... Args>
         void buildSink(Args &&...args)
@@ -139,6 +152,7 @@ public:
         virtual Logger::ptr build() = 0;
 
     protected:
+        LoggerFormat::ptr _format;
         Logger::Type _logger_type;
         std::string _logger_name;
         LogLevel::Value _level;

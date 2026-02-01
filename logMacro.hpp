@@ -23,7 +23,7 @@ inline Logger::ptr rootLogger()
 // ==================== Root Logger 快捷函数 ====================
 // DEBUG 级别日志
 template <typename... Args>
-void log_debug(fmt::format_string<Args...> fmt, Args &&...args)
+void logd(fmt::format_string<Args...> fmt, Args &&...args)
 {
     auto logger = rootLogger();
     if (logger) {
@@ -33,7 +33,7 @@ void log_debug(fmt::format_string<Args...> fmt, Args &&...args)
 
 // INFO 级别日志
 template <typename... Args>
-void log_info(fmt::format_string<Args...> fmt, Args &&...args)
+void logi(fmt::format_string<Args...> fmt, Args &&...args)
 {
     auto logger = rootLogger();
     if (logger) {
@@ -43,7 +43,7 @@ void log_info(fmt::format_string<Args...> fmt, Args &&...args)
 
 // WARN 级别日志
 template <typename... Args>
-void log_warn(fmt::format_string<Args...> fmt, Args &&...args)
+void logw(fmt::format_string<Args...> fmt, Args &&...args)
 {
     auto logger = rootLogger();
     if (logger) {
@@ -53,7 +53,7 @@ void log_warn(fmt::format_string<Args...> fmt, Args &&...args)
 
 // ERROR 级别日志
 template <typename... Args>
-void log_error(fmt::format_string<Args...> fmt, Args &&...args)
+void loge(fmt::format_string<Args...> fmt, Args &&...args)
 {
     auto logger = rootLogger();
     if (logger) {
@@ -63,7 +63,7 @@ void log_error(fmt::format_string<Args...> fmt, Args &&...args)
 
 // FATAL 级别日志
 template <typename... Args>
-void log_fatal(fmt::format_string<Args...> fmt, Args &&...args)
+void logf(fmt::format_string<Args...> fmt, Args &&...args)
 {
     auto logger = rootLogger();
     if (logger) {
@@ -73,7 +73,7 @@ void log_fatal(fmt::format_string<Args...> fmt, Args &&...args)
 
 // ==================== 带 Logger 参数的函数 ====================
 template <typename... Args>
-void log_debug(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
+void logd(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
 {
     if (logger) {
         logger->debug(fmt, std::forward<Args>(args)...);
@@ -81,7 +81,7 @@ void log_debug(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...ar
 }
 
 template <typename... Args>
-void log_info(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
+void logi(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
 {
     if (logger) {
         logger->info(fmt, std::forward<Args>(args)...);
@@ -89,7 +89,7 @@ void log_info(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...arg
 }
 
 template <typename... Args>
-void log_warn(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
+void logw(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
 {
     if (logger) {
         logger->warn(fmt, std::forward<Args>(args)...);
@@ -97,7 +97,7 @@ void log_warn(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...arg
 }
 
 template <typename... Args>
-void log_error(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
+void loge(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
 {
     if (logger) {
         logger->error(fmt, std::forward<Args>(args)...);
@@ -105,17 +105,14 @@ void log_error(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...ar
 }
 
 template <typename... Args>
-void log_fatal(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
+void logf(Logger::ptr logger, fmt::format_string<Args...> fmt, Args &&...args)
 {
     if (logger) {
         logger->fatal(fmt, std::forward<Args>(args)...);
     }
 }
 
-
 }
-
-
 
 
 #endif 

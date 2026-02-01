@@ -18,6 +18,8 @@ private:
         std::unique_ptr<GlobalLoggerBuilder> slb(new GlobalLoggerBuilder());
         slb->buildLoggerName("root");
         slb->buildLoggerType(Logger::Type::LOGGER_ASYNC);
+        slb->buildLoggerLevel(LogLevel::Value::DEBUG);
+        slb->buildLoggerFormat(LoggerFormat::FormatType::FORMAT_NORMAL);
         slb->buildSink<StdoutSink>();
         _root_logger = slb->build();
         assert(_root_logger && "Failed to initialize root logger");
