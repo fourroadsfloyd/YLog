@@ -6,9 +6,47 @@
 #include <mutex>
 #include <fstream>
 #include <sstream>
-#include <ctime>
+#include <chrono>
+#include <filesystem>
+#include <iomanip>
 
 namespace YLog {
+
+namespace detail {
+inline void ensure_parent_dir_exists(const std::string& filename)
+{
+    namespace fs = std::filesystem;
+    fs::path p(filename);
+    auto parent = p.parent_path();
+    if (!parent.empty())
+    {
+        std::error_code ec;
+        fs::create_directories(parent, ec);
+        if (ec)
+        {
+            throw std::runtime_error("Failed to create directory: " + parent.string() + ", " + ec.message());
+        }
+    }
+}
+
+inline std::tm local_tm(std::time_t t)
+{
+    std::tm out{};
+#ifdef _WIN32
+    localtime_s(&out, &t);
+#else
+    localtime_r(&t, &out);
+#endif
+    return out;
+}
+
+inline std::string format_time(const std::tm& tm, const char* fmt)
+{
+    std::ostringstream oss;
+    oss << std::put_time(&tm, fmt);
+    return oss.str();
+}
+}
 // 抽象日志落地类
 class LogSink {
 public:
@@ -52,8 +90,8 @@ public:
     using ptr = std::shared_ptr<FileSink>;
     FileSink(const std::string &filename) : _filename(filename)
     {
-        // 跨平台创建目录
-        util::file::create_directory(util::file::path(_filename));
+        // C++17: create parent directories via std::filesystem
+        detail::ensure_parent_dir_exists(_filename);
         // 以二进制追加模式打开
         _ofs.open(_filename, std::ios::binary | std::ios::app);
 
@@ -78,6 +116,9 @@ public:
         if (_ofs.good())
         {
             _ofs.write(msg, len);
+            // Make log durable/visible immediately. This avoids "partial" output
+            // in short-lived programs or when only file sink is enabled.
+            _ofs.flush();
         }
         else
         {
@@ -108,8 +149,8 @@ public:
             _max_fsize(max_size),
             _cur_fsize(0)
     {
-        // 跨平台创建目录
-        util::file::create_directory(util::file::path(basename));
+        // Create parent dir from basename (basename may include a directory prefix)
+        detail::ensure_parent_dir_exists(_basename);
     }
 
     ~RollSink() override
@@ -128,6 +169,7 @@ public:
         {
             _ofs.write(data, len);
             _cur_fsize += len;
+            _ofs.flush();
         }
         else
         {
@@ -169,27 +211,19 @@ private:
     // 生成带时间戳的文件名
     std::string createFilename()
     {
-        time_t t = time(nullptr);
-        struct tm lt;
+        namespace fs = std::filesystem;
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        auto tm = detail::local_tm(t);
 
-        // 跨平台时间转换
-        #ifdef _WIN32
-                    localtime_s(&lt, &t);  // Windows: localtime_s(结果, 输入)
-        #else
-                    localtime_r(&t, &lt);  // Linux: localtime_r(输入, 结果)
-        #endif
+        // Preserve directory + base filename prefix in _basename, append timestamp + .log
+        fs::path base(_basename);
+        std::string stem = base.filename().string();
+        fs::path parent = base.parent_path();
 
-        std::stringstream ss;
-        ss << _basename;
-        ss << lt.tm_year + 1900;  // 年（tm_year 是从 1900 开始的）
-        ss << (lt.tm_mon + 1) / 10 << (lt.tm_mon + 1) % 10;  // 月（补零）
-        ss << lt.tm_mday / 10 << lt.tm_mday % 10;            // 日（补零）
-        ss << lt.tm_hour / 10 << lt.tm_hour % 10;            // 时（补零）
-        ss << lt.tm_min / 10 << lt.tm_min % 10;              // 分（补零）
-        ss << lt.tm_sec / 10 << lt.tm_sec % 10;              // 秒（补零）
-        ss << ".log";
-
-        return ss.str();
+        std::string stamp = detail::format_time(tm, "%Y%m%d%H%M%S");
+        fs::path filename = parent / (stem + stamp + ".log");
+        return filename.string();
     }
 
     std::string _basename;
@@ -206,7 +240,7 @@ public:
         : _basename(basename),
             _current_day(0)
     {
-        util::file::create_directory(util::file::path(basename));
+        detail::ensure_parent_dir_exists(_basename);
         initLogFile();
     }
 
@@ -224,6 +258,7 @@ public:
         if (_ofs.good())
         {
             _ofs.write(data, len);
+            _ofs.flush();
         }
     }
 
@@ -238,17 +273,12 @@ public:
 private:
     void checkRoll()
     {
-        time_t t = time(nullptr);
-        struct tm lt;
-
-        #ifdef _WIN32
-                    localtime_s(&lt, &t);
-        #else
-                    localtime_r(&t, &lt);
-        #endif
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        auto tm = detail::local_tm(t);
 
         // 计算一年中的第几天
-        int current_day = lt.tm_yday;
+        int current_day = tm.tm_yday;
 
         // 日期改变，创建新文件
         if (current_day != _current_day)
@@ -264,28 +294,23 @@ private:
 
     void initLogFile()
     {
-        time_t t = time(nullptr);
-        struct tm lt;
+        namespace fs = std::filesystem;
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        auto tm = detail::local_tm(t);
 
-        #ifdef _WIN32
-                    localtime_s(&lt, &t);
-        #else
-                    localtime_r(&t, &lt);
-        #endif
+        fs::path base(_basename);
+        std::string stem = base.filename().string();
+        fs::path parent = base.parent_path();
 
-        std::stringstream ss;
-        ss << _basename;
-        ss << lt.tm_year + 1900;
-        ss << (lt.tm_mon + 1) / 10 << (lt.tm_mon + 1) % 10;
-        ss << lt.tm_mday / 10 << lt.tm_mday % 10;
-        ss << ".log";
+        std::string day = detail::format_time(tm, "%Y%m%d");
+        fs::path filename = parent / (stem + day + ".log");
 
-        std::string filename = ss.str();
-        _ofs.open(filename, std::ios::binary | std::ios::app);
+        _ofs.open(filename.string(), std::ios::binary | std::ios::app);
 
         if (!_ofs.is_open()) 
         {
-            std::cerr << "DailyRollSink: Failed to open file: " << filename << std::endl;
+            std::cerr << "DailyRollSink: Failed to open file: " << filename.string() << std::endl;
         }
     }
 

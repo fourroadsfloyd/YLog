@@ -79,11 +79,11 @@ public:
 
         if (_logger_type == Logger::Type::LOGGER_ASYNC)
         {
-            lp = std::make_shared<AsyncLogger>(_logger_name, _sinks, _level);
+            lp = std::make_shared<AsyncLogger>(_logger_name, _sinks, _level, _format);
         }
         else
         {
-            lp = std::make_shared<SyncLogger>(_logger_name, _sinks, _level);
+            lp = std::make_shared<SyncLogger>(_logger_name, _sinks, _level, _format);
         }
         return lp;
     }
@@ -97,8 +97,8 @@ private:
         slb->buildLoggerName("root");
         slb->buildLoggerType(Logger::Type::LOGGER_ASYNC);
         slb->buildLoggerLevel(LogLevel::Value::DEBUG);
-        slb->buildLoggerFormat(LoggerFormat::FormatType::FORMAT_NORMAL);
-        slb->buildSink<StdoutSink>();
+        slb->buildLoggerFormat(LoggerFormat::FormatType::FORMAT_DETAIL);
+        slb->buildSink<FileSink>("./logs/test.log");
         _root_logger = slb->build();
         assert(_root_logger && "Failed to initialize root logger");
         _loggers.insert({"root", _root_logger});

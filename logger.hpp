@@ -33,10 +33,20 @@ public:
 
     Logger(const std::string &name,
             std::vector<LogSink::ptr> &sinks,
-            LogLevel::Value level = LogLevel::Value::DEBUG)
-        : _name(name),
+            LogLevel::Value level = LogLevel::Value::DEBUG,
+            LoggerFormat::ptr format = nullptr)
+        : _format(std::move(format)),
+            _name(name),
             _level(level),
-            _sinks(sinks.begin(), sinks.end()) {}
+            _sinks(sinks.begin(), sinks.end())
+    {
+        // Safety: avoid crashing if caller forgot to set a formatter.
+        // Default to NormalFormat.
+        if (!_format)
+        {
+            _format = std::make_shared<NormalFormat>();
+        }
+    }
 
     std::string loggerName() { return _name; }
     LogLevel::Value loggerLevel() { return _level; }
@@ -45,6 +55,9 @@ public:
     void debug(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::DEBUG) == false)
+            return;
+
+        if (!_format)
             return;
 
         auto msg = _format->formatLog(LogLevel::Value::DEBUG, fmt::format(fmt, std::forward<Args>(args)...));
@@ -58,6 +71,9 @@ public:
         if (shouldLog(LogLevel::Value::INFO) == false)
             return;
 
+        if (!_format)
+            return;
+
         auto msg = _format->formatLog(LogLevel::Value::INFO, fmt::format(fmt, std::forward<Args>(args)...));
 
         LogIt(std::move(msg));
@@ -67,6 +83,9 @@ public:
     void warn(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::WARN) == false)
+            return;
+
+        if (!_format)
             return;
 
         auto msg = _format->formatLog(LogLevel::Value::WARN, fmt::format(fmt, std::forward<Args>(args)...));
@@ -80,6 +99,9 @@ public:
         if (shouldLog(LogLevel::Value::ERROR) == false)
             return;
 
+        if (!_format)
+            return;
+
         auto msg = _format->formatLog(LogLevel::Value::ERROR, fmt::format(fmt, std::forward<Args>(args)...));
 
         LogIt(std::move(msg));
@@ -89,6 +111,9 @@ public:
     void fatal(fmt::format_string<Args...> fmt, Args&&... args)
     {
         if (shouldLog(LogLevel::Value::FATAL) == false)
+            return;
+
+        if (!_format)
             return;
 
         auto msg = _format->formatLog(LogLevel::Value::FATAL, fmt::format(fmt, std::forward<Args>(args)...));
@@ -115,8 +140,9 @@ public:
     using ptr = std::shared_ptr<SyncLogger>;
     SyncLogger(const std::string &name,
                 std::vector<LogSink::ptr> &sinks,
-                LogLevel::Value level = LogLevel::Value::DEBUG)
-        : Logger(name, sinks, level)
+                LogLevel::Value level = LogLevel::Value::DEBUG,
+                LoggerFormat::ptr format = nullptr)
+        : Logger(name, sinks, level, std::move(format))
     {
         std::cout << LogLevel::toString(level) << " 同步⽇志器: " << name << "创建成功...\n";
     }
@@ -142,8 +168,9 @@ public:
 
     AsyncLogger(const std::string &name,
                 std::vector<LogSink::ptr> &sinks,
-                LogLevel::Value level = LogLevel::Value::DEBUG)
-        : Logger(name, sinks, level),
+                LogLevel::Value level = LogLevel::Value::DEBUG,
+                LoggerFormat::ptr format = nullptr)
+        : Logger(name, sinks, level, std::move(format)),
             _looper(std::make_shared<AsyncWorker>([this](Buffer &msg){ this->realLog(msg); }))
     {
         std::cout << LogLevel::toString(level) << "异步⽇志器: " << name << "创建成功...\n ";

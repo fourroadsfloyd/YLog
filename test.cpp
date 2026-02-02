@@ -3,11 +3,49 @@
 #include "sink.hpp"
 #include "loggerFormat.hpp"
 #include <iostream>
+#include <thread>
+#include <vector>
+#include <chrono>
 
 using namespace YLog;
 
 int main()
 {
+    // ==================== 多线程异步日志测试 ====================
+    // 目标：验证 AsyncLogger 在多线程并发写日志时不会崩溃、日志不丢失、每条日志一行。
+    {
+        LoggerBuilder async_builder;
+        async_builder.buildLoggerName("async_mt");
+        async_builder.buildLoggerLevel(LogLevel::Value::DEBUG);
+        async_builder.buildLoggerType(Logger::Type::LOGGER_ASYNC);
+        async_builder.buildLoggerFormat(LoggerFormat::FormatType::FORMAT_DETAIL);
+        async_builder.buildSink<FileSink>("./logs/async_mt.log");
+        auto async_logger = async_builder.build();
+
+        constexpr int kThreads = 8;
+        constexpr int kPerThread = 2000;
+
+        std::vector<std::thread> threads;
+        threads.reserve(kThreads);
+
+        for (int t = 0; t < kThreads; ++t)
+        {
+            threads.emplace_back([async_logger, t]() {
+                for (int i = 0; i < kPerThread; ++i)
+                {
+                    logi(async_logger, "tid={}, i={}, msg={}", t, i, "hello");
+                }
+            });
+        }
+
+        for (auto &th : threads)
+            th.join();
+
+        // AsyncWorker runs in a background thread; give it a brief moment to drain.
+        // (In a real library you'd expose flush()/stop() on the logger.)
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+
     // 创建 LoggerBuilder（会自动注册到 LoggerMgr）
     LoggerBuilder builder;
 
@@ -18,8 +56,8 @@ int main()
     builder.buildLoggerFormat(LoggerFormat::FormatType::FORMAT_DETAIL);
 
     // 添加输出目标：控制台和文件
-    builder.buildSink<StdoutSink>();
-    builder.buildSink<FileSink>("./logs/test.log");
+    builder.buildSink<RollSink>("./logs/test.log", 1024 * 1024 * 10); // 10 MB
+    //builder.buildSink<FileSink>("./logs/test.log");
 
     // 构建 logger（自动注册到 LoggerMgr）
     auto logger = builder.build();
@@ -46,9 +84,9 @@ int main()
 
     // 测试各种格式化
     logd("整数: {}, 十六进制: {:#x}", 255, 255);
-    logi("浮点数: {:.2f}, 百分比: {:.1%}", 3.14159, 0.856);
+    logi("浮点数: {:.2f}, 百分比: {:.1f}%", 3.14159, 0.856 * 100.0);
     logw("字符串: {}, 字符: {}", "hello", 'A');
-    loge("指针: 0x{:x}", (void*)&main);
+    loge("指针: {:p}", (const void*)&main);
 
     std::cout << "\n========== 测试完成 ==========\n" << std::endl;
 
