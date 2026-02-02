@@ -54,6 +54,8 @@ public:
     LogSink() = default;
     virtual ~LogSink() = default;
     virtual void log(const char *data, size_t len) = 0;
+    // Flush buffered output. Default no-op for sinks that don't buffer.
+    virtual void flush() {}
 };
 
 // 标准输出落地（控制台）
@@ -68,6 +70,11 @@ public:
         std::cout.write(msg, len);
         std::cout.flush();  // 确保立即输出
     }
+
+    void flush() override
+    {
+        std::cout.flush();
+    }
 };
 
 // 标准错误输出落地
@@ -81,6 +88,11 @@ public:
     {
         std::cerr.write(msg, len);
         std::cerr.flush();  // 确保立即输出
+    }
+
+    void flush() override
+    {
+        std::cerr.flush();
     }
 };
 
@@ -116,9 +128,6 @@ public:
         if (_ofs.good())
         {
             _ofs.write(msg, len);
-            // Make log durable/visible immediately. This avoids "partial" output
-            // in short-lived programs or when only file sink is enabled.
-            _ofs.flush();
         }
         else
         {
@@ -127,7 +136,7 @@ public:
     }
 
     // 手动刷新缓冲区
-    void flush()
+    void flush() override
     {
         if (_ofs.is_open()) 
         {
@@ -169,7 +178,6 @@ public:
         {
             _ofs.write(data, len);
             _cur_fsize += len;
-            _ofs.flush();
         }
         else
         {
@@ -178,7 +186,7 @@ public:
     }
 
     // 手动刷新缓冲区
-    void flush()
+    void flush() override
     {
         if (_ofs.is_open()) 
         {
@@ -258,11 +266,10 @@ public:
         if (_ofs.good())
         {
             _ofs.write(data, len);
-            _ofs.flush();
         }
     }
 
-    void flush()
+    void flush() override
     {
         if (_ofs.is_open()) 
         {

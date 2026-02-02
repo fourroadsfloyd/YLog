@@ -192,6 +192,12 @@ protected:
         {
             it->log(msg.begin(), msg.ReadableSize());
         }
+
+        // Batch flush: flush once per drained buffer, not per log line.
+        for (auto &it : _sinks)
+        {
+            it->flush();
+        }
     }
 
 protected:
